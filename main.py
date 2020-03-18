@@ -17,17 +17,20 @@ class SimpleRobotControl:
         self.control_modes = [XY_GOAL, WHEEL_CONTROL]
         self.control_mode_id = 0
         self.m = model.Model()
-        self.m.x_goal = 50
-        self.m.y_goal = 50
+        self.m.x_goal = 0.05
+        self.m.y_goal = 0.05
         self.mode = self.get_mode()
         self.clock = pygame.time.Clock()
         self.t0 = pygame.time.get_ticks() / 1000.0
+        self.is_artist = False
+        self.update_period = 1 / 60.0
         # initialize and prepare screen
         pygame.init()
         self.screen = pygame.display.set_mode(WINSIZE)
-        pygame.display.set_caption("Cubi simulation")
+        pygame.display.set_caption("Simple Robot simulator")
         # Font init
         self.font = pygame.font.SysFont("monospace", 30)
+        self.small_font = pygame.font.SysFont("monospace", 20)
         self.screen.fill(BLACK)
 
     def get_mode(self):
@@ -40,7 +43,10 @@ class SimpleRobotControl:
         if m == None:
             m = self.m
         # Usually, we have X in front of us and Y to the left. Let's keep that : y = -y, theta = theta-pi/2
-        center_pos = [int(m.x + WINCENTER[0]), int(-m.y + WINCENTER[1])]
+        center_pos = [
+            int(m.x * METERS_TO_PIXEL + WINCENTER[0]),
+            int(-m.y * METERS_TO_PIXEL + WINCENTER[1]),
+        ]
         color = CENTER_COLOR
         size = CENTER_SIZE
         if fake:
@@ -48,11 +54,19 @@ class SimpleRobotControl:
             size = int(FAKE_SIZE)
         pygame.draw.circle(self.screen, color, center_pos, int(size), 0)
 
-        r = int(m.l / 2)
+        r = m.l / 2.0
         theta = m.theta - math.pi / 2
         wheel_pos = [
-            int(center_pos[0] + r * math.cos(theta)),
-            int(center_pos[1] - r * math.sin(theta)),
+            int(
+                m.x * METERS_TO_PIXEL
+                + WINCENTER[0]
+                + r * METERS_TO_PIXEL * math.cos(theta)
+            ),
+            int(
+                -m.y * METERS_TO_PIXEL
+                + WINCENTER[1]
+                - r * METERS_TO_PIXEL * math.sin(theta)
+            ),
         ]
         color = WHEEL_COLOR
         size = WHEEL_SIZE
@@ -62,16 +76,24 @@ class SimpleRobotControl:
         pygame.draw.circle(self.screen, color, wheel_pos, int(size), 0)
 
         wheel_pos = [
-            int(center_pos[0] - r * math.cos(theta)),
-            int(center_pos[1] + r * math.sin(theta)),
+            int(
+                m.x * METERS_TO_PIXEL
+                + WINCENTER[0]
+                - r * METERS_TO_PIXEL * math.cos(theta)
+            ),
+            int(
+                -m.y * METERS_TO_PIXEL
+                + WINCENTER[1]
+                + r * METERS_TO_PIXEL * math.sin(theta)
+            ),
         ]
         pygame.draw.circle(self.screen, color, wheel_pos, int(size), 0)
 
     def draw_goal(self):
         # Usually, we have X in front of us and Y to the left. Let's keep that : y = -y, theta = theta-pi/2
         center_pos = [
-            int(self.m.x_goal + WINCENTER[0]),
-            int(-self.m.y_goal + WINCENTER[1]),
+            int(self.m.x_goal * METERS_TO_PIXEL + WINCENTER[0]),
+            int(-self.m.y_goal * METERS_TO_PIXEL + WINCENTER[1]),
         ]
         pygame.draw.circle(self.screen, GOAL_COLOR, center_pos, int(GOAL_SIZE), 0)
 
@@ -92,12 +114,15 @@ class SimpleRobotControl:
                     if key == "q":
                         print("Rage quit!")
                         return 0
-                    if key == "r":
-                        None
-                    if e.key == pygame.K_SPACE:
+                    if key == "a":
+                        self.is_artist = not (self.is_artist)
+                        if self.is_artist:
+                            self.screen.fill(BLACK)
+                    if e.key == pygame.K_TAB:
                         self.set_next_mode()
-                    if e.key == pygame.K_RETURN:
-                        self.m.theta = float(raw_input("theta = "))
+                    if e.key == pygame.K_SPACE:
+                        self.m.m1.speed = 0
+                        self.m.m2.speed = 0
                     if e.key == pygame.K_UP:
                         self.m.m1.speed = self.m.m1.speed + WHEEL_SPEED_INC
                     if e.key == pygame.K_DOWN:
@@ -109,10 +134,10 @@ class SimpleRobotControl:
                 elif e.type == pygame.MOUSEMOTION:
                     mx, my = e.pos
                 elif e.type == MOUSEBUTTONDOWN and e.button == 1:
-                    self.m.x_goal = mx - WINCENTER[0]
-                    self.m.y_goal = -(my - WINCENTER[1])
-
-            self.screen.fill(BLACK)
+                    self.m.x_goal = (mx - WINCENTER[0]) / METERS_TO_PIXEL
+                    self.m.y_goal = -(my - WINCENTER[1]) / METERS_TO_PIXEL
+            if not (self.is_artist):
+                self.screen.fill(BLACK)
             if mode == XY_GOAL:
                 self.asserv()
             elif mode == WHEEL_CONTROL:
@@ -120,38 +145,90 @@ class SimpleRobotControl:
             else:
                 print("ERROR: mode '{}' is unknown".format(mode))
                 sys.exit()
-            self.m.update(1)
+            self.m.update(self.update_period)
 
             # Creating a fake robot to trace the future :)
             fake_m = copy.deepcopy(self.m)
-            for i in range(20):
+            for i in range(30):
                 if mode == XY_GOAL:
                     self.asserv(m=fake_m)
-                fake_m.update(20)
+                fake_m.update(10 * self.update_period)
                 self.draw_robot(m=fake_m, fake=True)
 
             self.draw_state()
             # print(self.m)
-            text = self.font.render("Cubi !", 1, gold)
-            self.screen.blit(text, [0, 0])
-
             t = pygame.time.get_ticks() / 1000.0 - self.t0
-            time_pos = [20, 30]
+            linear_speed, rotation_speed = self.m.dk()
 
-            try:
-                # Erasing the previous text
-                time_text.fill(BLACK)
-                self.screen.blit(time_text, time_pos)
-            except Exception:
-                None
             # Writing new text
-            str_time = "{0:.2f}".format(t)
-            time_text = self.font.render("Time : " + str_time, 1, (0, 150, 0))
-            self.screen.blit(time_text, time_pos)
+            self.screen.blit(
+                self.font.render("Simple Robot Simulator", 1, gold), [0, 0]
+            )
+            if self.is_artist:
+                self.screen.blit(
+                    self.font.render("Artist mode!", 1, (0, 150, 0)), [20, 30]
+                )
+            else:
+                self.screen.blit(
+                    self.small_font.render(
+                        "q: quit, tab: next mode, mouse: goal position, arrows: wheel speed control, space: speed 0 to wheels, a: artist toggle",
+                        1,
+                        (0, 150, 0),
+                    ),
+                    [20, 30],
+                )
+                self.screen.blit(
+                    self.small_font.render("Time: {0:.2f}".format(t), 1, (0, 150, 0)),
+                    [20, 60],
+                )
+                self.screen.blit(
+                    self.small_font.render(
+                        "Mode: {}, artist: {}".format(
+                            self.get_mode(), "True" if self.is_artist else "False"
+                        ),
+                        1,
+                        (0, 150, 0),
+                    ),
+                    [20, 90],
+                )
+                self.screen.blit(
+                    self.small_font.render(
+                        "Left wheel speed: {0:.2f} mm/s".format(1000 * self.m.m1.speed),
+                        1,
+                        (0, 150, 0),
+                    ),
+                    [20, 120],
+                )
+                self.screen.blit(
+                    self.small_font.render(
+                        "Right wheel speed: {0:.2f} mm/s".format(
+                            1000 * self.m.m2.speed
+                        ),
+                        1,
+                        (0, 150, 0),
+                    ),
+                    [20, 150],
+                )
+                self.screen.blit(
+                    self.small_font.render(
+                        "Linear speed: {0:.2f} mm/s".format(1000 * linear_speed),
+                        1,
+                        (0, 150, 0),
+                    ),
+                    [20, 180],
+                )
+                self.screen.blit(
+                    self.small_font.render(
+                        "Angular speed: {0:.3f} rad/s".format(rotation_speed),
+                        1,
+                        (0, 150, 0),
+                    ),
+                    [20, 210],
+                )
 
             pygame.display.update()
             # That juicy 60 Hz :D
-            self.clock.tick(60)
+            self.clock.tick(1 / self.update_period)
 
     def asserv(self, m=None):
         if m == None:

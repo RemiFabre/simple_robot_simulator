@@ -1,6 +1,6 @@
 import sys
 import motor
-from math import *
+import math
 from constants import *
 
 
@@ -39,15 +39,32 @@ class Model(object):
         )
         return s
 
-    def ik(self, local_speed, local_turn):
-        m1_speed = local_speed - local_turn * self.l / 2
-        m2_speed = local_speed + local_turn * self.l / 2
+    def ik(self, linear_speed, rotational_speed):
+        """Given the linear speed and the rotational speed, returns the speed of the wheels in a differential wheeled robot
+        
+        Arguments:
+            linear_speed {float} -- Linear speed (m/s)
+            rotational_speed {float} -- Rotational speed (rad/s)
+        
+        Returns:
+            float -- Speed of motor1 (m/s), speech of motor2 (m/s)
+        """
+        m1_speed = linear_speed - rotational_speed * self.l / 2.0
+        m2_speed = linear_speed + rotational_speed * self.l / 2.0
         return m1_speed, m2_speed
+
+    def dk(self, m1_speed=None, m2_speed=None):
+        if m1_speed == None:
+            m1_speed = self.m1.speed
+        if m2_speed == None:
+            m2_speed = self.m2.speed
+        linear_speed = (self.m1.speed + self.m2.speed) / 2.0
+        rotation_speed = (self.m1.speed - self.m2.speed) / L
+        return linear_speed, rotation_speed
 
     def update(self, dt):
         # Going from wheel speeds to robot speed
-        linear_speed = (self.m1.speed + self.m2.speed) / 2.0
-        rotation_speed = (self.m1.speed - self.m2.speed) / L
+        linear_speed, rotation_speed = self.dk()
 
         l = dt * linear_speed
         # Updating dx, dy, dtethat
@@ -59,13 +76,13 @@ class Model(object):
         else:
             # The robot moves on a portion of a circle whose radius is l/alpha
             alpha = rotation_speed * dt
-            dx = l * sin(alpha) / alpha
-            dy = l * (cos(alpha) - 1) / alpha
+            dx = l * math.sin(alpha) / alpha
+            dy = l * (math.cos(alpha) - 1) / alpha
             dtheta = alpha
         # print("dx = {}, dy = {}, dtethat = {}".format(dx, dy, dtheta))
 
         # Updating the robot position
-        self.x = self.x + dx * cos(self.theta) - dy * sin(self.theta)
-        self.y = self.y + dx * sin(self.theta) + dy * cos(self.theta)
+        self.x = self.x + dx * math.cos(self.theta) - dy * math.sin(self.theta)
+        self.y = self.y + dx * math.sin(self.theta) + dy * math.cos(self.theta)
         self.theta = self.theta + dtheta  # No need to %(2*pi)
 
