@@ -254,48 +254,10 @@ class SimpleRobotControl:
         distance = math.sqrt(
             (m.x_goal - m.x) * (m.x_goal - m.x) + (m.y_goal - m.y) * (m.y_goal - m.y)
         )
-        if distance < XY_TOL:
-            # Close enough
-            m.m1.speed = 0
-            m.m2.speed = 0
-            return
 
-        # The angle goal depends on the X Y goals
-        dy = m.y_goal - m.y
-        dx = m.x_goal - m.x
-        if not (dx == 0 and dy == 0):
-            m.theta_goal = math.atan2(dy, m.x_goal - m.x)
-
-        # TODO implement go backwards when (theta_goal - theta) > pi. And debug this.
-        # Turn asserv
-        err = self.angle_diff(m.theta, m.theta_goal)
-        # print("***err = {}, goal = {}, theta = {}".format(err*180/math.pi, m.theta_goal*180/math.pi, m.theta*180/math.pi))
-        # model.acc += turni * err;
-        # _limit(&model.acc, turnacc);
-        p_contribution = TURN_P * err
-
-        """
-        if ((p_contribution < 0 && model.acc >= 0) || (p_contribution > 0 && model.acc <= 0)) {
-            // Astuce !
-            model.acc = 0;
-        }
-        """
-        local_turn = p_contribution + m.acc
-
+        # TODO
         local_speed = 0
-        # linear speed asserv
-        # model.speed_acc += speedi * distance;
-        # _limit(&model.acc, speedacc);
-        p_contribution = SPEED_P * distance
-
-        """
-        if ((p_contribution < 0 && model.speed_acc >= 0) || (p_contribution > 0 && model.speed_acc <= 0)) {
-            // Astuce !
-            model.speed_acc = 0;
-        }
-        """
-
-        local_speed = p_contribution + m.speed_acc
+        local_turn = 0
 
         m1_speed, m2_speed = m.ik(local_speed, local_turn)
         m.m1.speed = m1_speed
@@ -304,8 +266,8 @@ class SimpleRobotControl:
     def angle_diff(self, a, b):
         """Returns the smallest distance between 2 angles
         """
-        d = a - b
-        d = ((d + math.pi) % (2 * math.pi)) - math.pi
+        # TODO
+        d = 0
         return d
 
 

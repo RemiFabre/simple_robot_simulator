@@ -50,8 +50,9 @@ class Model(object):
         Returns:
             float -- Speed of motor1 (m/s), speech of motor2 (m/s)
         """
-        m1_speed = linear_speed - rotational_speed * self.l / 2.0
-        m2_speed = linear_speed + rotational_speed * self.l / 2.0
+        # TODO
+        m1_speed = 0
+        m2_speed = 0
         return m1_speed, m2_speed
 
     def dk(self, m1_speed=None, m2_speed=None):
@@ -65,12 +66,9 @@ class Model(object):
         Returns:
             float -- linear speed (m/s), rotational speed (rad/s)
         """
-        if m1_speed == None:
-            m1_speed = self.m1.speed
-        if m2_speed == None:
-            m2_speed = self.m2.speed
-        linear_speed = (self.m1.speed + self.m2.speed) / 2.0
-        rotation_speed = (self.m1.speed - self.m2.speed) / L
+        # TODO
+        linear_speed = 0
+        rotation_speed = 0
         return linear_speed, rotation_speed
 
     def update(self, dt):
@@ -84,23 +82,10 @@ class Model(object):
         # Going from wheel speeds to robot speed
         linear_speed, rotation_speed = self.dk()
 
-        l = dt * linear_speed
-        # Updating dx, dy, dtethat
-        if rotation_speed == 0:
-            # The robot moves in a straight line
-            dy = 0
-            dx = l
-            dtheta = 0
-        else:
-            # The robot moves on a portion of a circle whose radius is l/alpha
-            alpha = rotation_speed * dt
-            dx = l * math.sin(alpha) / alpha
-            dy = l * (math.cos(alpha) - 1) / alpha
-            dtheta = alpha
-        # print("dx = {}, dy = {}, dtethat = {}".format(dx, dy, dtheta))
+        # TODO
 
         # Updating the robot position
-        self.x = self.x + dx * math.cos(self.theta) - dy * math.sin(self.theta)
-        self.y = self.y + dx * math.sin(self.theta) + dy * math.cos(self.theta)
-        self.theta = self.theta + dtheta  # No need to %(2*pi)
+        self.x = self.x + 0  # TODO
+        self.y = self.y + 0  # TODO
+        self.theta = self.theta + 0  # TODO
 
