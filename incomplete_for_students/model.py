@@ -55,7 +55,7 @@ class Model(object):
         m2_speed = 0
         return m1_speed, m2_speed
 
-    def dk(self, m1_speed=None, m2_speed=None):
+    def dk(self):
         """Given the speed of each of the 2 motors (m/s), 
         returns the linear speed (m/s) and rotational speed (rad/s) of a differential wheeled robot
         
