@@ -102,8 +102,7 @@ class SimpleRobotControl:
         self.draw_goal()
 
     def play(self):
-        """ An inifinite loop that manages the display and the robot interactions
-        """
+        """An inifinite loop that manages the display and the robot interactions"""
         print("Current mode is '{}'".format(self.get_mode()))
         speed_multiplier = 1
         while True:
@@ -247,8 +246,7 @@ class SimpleRobotControl:
             self.clock.tick(1 / self.update_period)
 
     def asserv(self, m=None):
-        """Sets the speeds of the 2 motors to get the robot to its destination point
-        """
+        """Sets the speeds of the 2 motors to get the robot to its destination point"""
         if m == None:
             m = self.m
         distance = math.sqrt(
@@ -264,36 +262,18 @@ class SimpleRobotControl:
         dy = m.y_goal - m.y
         dx = m.x_goal - m.x
         if not (dx == 0 and dy == 0):
-            m.theta_goal = math.atan2(dy, m.x_goal - m.x)
+            m.theta_goal = math.atan2(dy, dx)
 
         # TODO implement go backwards when (theta_goal - theta) > pi. And debug this.
         # Turn asserv
         err = self.angle_diff(m.theta, m.theta_goal)
-        # print("***err = {}, goal = {}, theta = {}".format(err*180/math.pi, m.theta_goal*180/math.pi, m.theta*180/math.pi))
-        # model.acc += turni * err;
-        # _limit(&model.acc, turnacc);
+
         p_contribution = TURN_P * err
 
-        """
-        if ((p_contribution < 0 && model.acc >= 0) || (p_contribution > 0 && model.acc <= 0)) {
-            // Astuce !
-            model.acc = 0;
-        }
-        """
         local_turn = p_contribution + m.acc
 
         local_speed = 0
-        # linear speed asserv
-        # model.speed_acc += speedi * distance;
-        # _limit(&model.acc, speedacc);
         p_contribution = SPEED_P * distance
-
-        """
-        if ((p_contribution < 0 && model.speed_acc >= 0) || (p_contribution > 0 && model.speed_acc <= 0)) {
-            // Astuce !
-            model.speed_acc = 0;
-        }
-        """
 
         local_speed = p_contribution + m.speed_acc
 
@@ -302,8 +282,7 @@ class SimpleRobotControl:
         m.m2.speed = m2_speed
 
     def angle_diff(self, a, b):
-        """Returns the smallest distance between 2 angles
-        """
+        """Returns the smallest distance between 2 angles"""
         d = a - b
         d = ((d + math.pi) % (2 * math.pi)) - math.pi
         return d

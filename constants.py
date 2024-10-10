@@ -20,8 +20,8 @@ METERS_TO_PIXEL = 1000
 # Control management
 WHEEL_SPEED_INC = 0.0002 * 60
 XY_TOL = 5 / 1000.0
-TURN_P = 0.03 * 60
-SPEED_P = 0.01 * 60
+TURN_P = 0.01 * 60
+SPEED_P = 0.017 * 60
 
 # Mecanical values
 # Distance between the wheels in meters
